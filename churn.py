@@ -5,8 +5,19 @@ October-November 2018
 """
 import pandas as pd
 import numpy as np
+
 from Class_replace_impute_encode import ReplaceImputeEncode
+
+from Class_regression import logreg
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import ExtraTreesClassifier
+
+from Class_tree import DecisionTree
+from sklearn.tree import DecisionTreeClassifier
+
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_validate
+from sklearn.model_selection import train_test_split
 
 file_path = "C:/Users/Saistout/Desktop/data/customer churn/"
 df = pd.read_csv(file_path + 'WA_Fn-UseC_-Telco-Customer-Churn.csv')
@@ -27,7 +38,7 @@ for i in (0, len(df.columns)-1):
 index = df['TotalCharges'] == ' '
 df['TotalCharges'].loc[index] = '0'
 
-#TotalCharges is a str, we need it to be an int
+#TotalCharges is a str, we need it to be an int for a lot of reasons
 df['TotalCharges'] = pd.to_numeric(df['TotalCharges'])
 
 # Attribute Map:  the key is the name in the DataFrame
@@ -63,10 +74,128 @@ attribute_map = {
 #Define the target
 target = ['Churn']
 
-#Encode for logistic regression
+
+#Logistics Regression
+max_f1 = 0
+score_list = ['accuracy', 'recall', 'precision', 'f1']
+
+#Encode for logistic regressions
 rie_l = ReplaceImputeEncode(data_map=attribute_map, nominal_encoding='one-hot', 
                           interval_scale = 'std', drop=True, display=True)
 encoded_df_l = rie_l.fit_transform(df)
 X_l = encoded_df_l.drop(target, axis=1)
 y_l = encoded_df_l[target]
 np_y_l = np.ravel(y_l) #convert dataframe column to flat array
+
+
+#Do feature selection using random forest classifiers to determine which
+#predictors to include in the logistic regression
+features = ExtraTreesClassifier(n_estimators=500)
+features.fit(X_l,np_y_l)
+print(features.feature_importances_)
+#Only the interval predictors are important
+#Try two logistic models: one with all predictors, one with only the top 3 
+#predictors
+X_l_pred = X_l[['tenure', 'MonthlyCharges', 'TotalCharges']]
+
+
+#Set up arrays for testing
+X_train_l, X_validate_l, y_train_l, y_validate_l = \
+            train_test_split(X_l,y_l,test_size = 0.3, random_state=12345)
+np_y_validate_l = np.ravel(y_validate_l)
+np_y_train_l = np.ravel(y_train_l)
+
+X_train_l, X_validate_l, y_train_l, y_validate_l = \
+            train_test_split(X_l_pred,y_l,test_size = 0.3, random_state=12345)
+np_y_validate_l = np.ravel(y_validate_l)
+np_y_train_l = np.ravel(y_train_l)
+
+#Full Model
+print("\nFull Model: ")
+lgr = LogisticRegression()
+lgr.fit(X_l, np_y_l)
+scores = cross_validate(lgr, X_l,np_y_l,\
+                        scoring=score_list, return_train_score=False, \
+                        cv=10)
+print("{:.<13s}{:>6s}{:>13s}".format("Metric", "Mean", "Std. Dev."))
+for s in score_list:
+    var = "test_"+s
+    mean = scores[var].mean()
+    std  = scores[var].std()
+    print("{:.<13s}{:>7.4f}{:>10.4f}".format(s, mean, std))
+
+lgc = LogisticRegression()
+lgc = lgc.fit(X_train_l,np_y_train_l)
+
+logreg.display_binary_split_metrics(lgc, X_train_l, np_y_train_l, X_validate_l\
+                                     , np_y_validate_l)
+
+#Selected Variables
+print("\nTop 3 Predictors: ")
+lgr = LogisticRegression()
+lgr.fit(X_l_pred, np_y_l)
+scores = cross_validate(lgr, X_l_pred,np_y_l,\
+                        scoring=score_list, return_train_score=False, \
+                        cv=10)
+print("{:.<13s}{:>6s}{:>13s}".format("Metric", "Mean", "Std. Dev."))
+for s in score_list:
+    var = "test_"+s
+    mean = scores[var].mean()
+    std  = scores[var].std()
+    print("{:.<13s}{:>7.4f}{:>10.4f}".format(s, mean, std))
+
+lgc = LogisticRegression()
+lgc = lgc.fit(X_train_l,np_y_train_l)
+
+logreg.display_binary_split_metrics(lgc, X_train_l, np_y_train_l, X_validate_l\
+                                     , np_y_validate_l)
+
+#Not the greatest results, maybe decision tree will provide better results
+#Decision Tree
+
+#Tree encoding
+rie_t = ReplaceImputeEncode(data_map=attribute_map, nominal_encoding='one-hot', \
+                           drop=False,interval_scale = None, display=True)
+encoded_df_t = rie_t.fit_transform(df)
+X_t = encoded_df_t.drop(target, axis=1)
+y_t = encoded_df_t[target]
+np_y_t = np.ravel(y_t) #convert dataframe column to flat array
+
+X_train_t, X_validate_t, y_train_t, y_validate_t = \
+            train_test_split(X_t, np_y_t,test_size = 0.3, random_state=12345)
+
+#Decision Tree Models
+# Cross Validation
+depth_list = [3, 4, 5, 6, 7, 8, 10, 12]
+max_f1 = 0
+for d in depth_list:
+    print("\nMaximum Tree Depth: ", d)
+    dtc = DecisionTreeClassifier(max_depth=d, min_samples_leaf=5, \
+                                 min_samples_split=5)
+    dtc = dtc.fit(X_t,y_t)
+    scores = cross_validate(dtc, X_t, y_t, scoring=score_list, \
+                            return_train_score=False, cv=10)
+    
+    print("{:.<13s}{:>6s}{:>13s}".format("Metric", "Mean", "Std. Dev."))
+    for s in score_list:
+        var = "test_"+s
+        mean = scores[var].mean()
+        std  = scores[var].std()
+        print("{:.<13s}{:>7.4f}{:>10.4f}".format(s, mean, std))
+        if mean > max_f1:
+            max_f1 = mean
+            best_depth    = d
+            
+print("\nBest based on F1-Score")
+print("Best Depth = ", best_depth)
+# Evaluate the tree with the best depth
+dtc = DecisionTreeClassifier(max_depth=best_depth, min_samples_leaf=5, min_samples_split=5)
+dtc = dtc.fit(X_train_t,y_train_t)
+
+print("\nDecision Tree")
+print("\nDepth",best_depth)
+DecisionTree.display_binary_split_metrics(dtc, X_train_t, y_train_t, \
+                                     X_validate_t, y_validate_t)
+
+#Huge false positive rate! We are missing most of the churn, need to move on to
+#lose function to have any hope of modeling this data
