@@ -29,7 +29,6 @@ def loss_cal(y, y_predict, fp_cost, fn_cost, tp_cost, display=True):
         if y[j]==0:
             if y_predict[j]==0:
                 conf_mat[0] += 1 #True Negative
-                loss[2] += 1
             else:
                 conf_mat[1] += 1 #False Positive
                 loss[1] += fp_cost[j]
@@ -37,6 +36,7 @@ def loss_cal(y, y_predict, fp_cost, fn_cost, tp_cost, display=True):
             if y_predict[j]==1:
                 conf_mat[3] += 1 #True Positive
                 loss[3] += fn_cost[j]
+                loss[2] += tp_cost[j]
             else:
                 conf_mat[2] += 1 #False Negative
                 loss[0] += fn_cost[j]
@@ -52,6 +52,7 @@ def loss_cal(y, y_predict, fp_cost, fn_cost, tp_cost, display=True):
         print("{:.<23s}{:10.4f}".format("Misclassification Rate", misc))
         print("{:.<23s}{:10.0f}".format("False Negative Cost", fn_loss))
         print("{:.<23s}{:10.0f}".format("False Positive Cost", fp_loss))
+        print("{:.<23s}{:10.0f}".format("True Positive Cost", tp_loss))
         print("{:.<23s}{:10.0f}".format("Total Loss", total_loss))
         print("{:.<23s}{:10.0f}".format("Total Saved", tp_save))
         print("{:.<23s}{:10.0f}".format("Net Saved", total_saved))
@@ -281,7 +282,7 @@ for k in range(len(rus_ratio)):
     fp_loss  = np.zeros(len(rand_vals))
     misc     = np.zeros(len(rand_vals))
     tp_loss  = np.zeros(len(rand_vals))
-    fn_saved = np.zeros(len(rand_vals))
+    tp_saved = np.zeros(len(rand_vals))
     for i in range(len(rand_vals)):
         rus = RandomUnderSampler(ratio=rus_ratio[k], \
                 random_state=rand_vals[i], return_indices=False, \
@@ -295,32 +296,32 @@ for k in range(len(rus_ratio)):
         fn_loss[i]  = loss[0]
         fp_loss[i]  = loss[1]
         tp_loss[i]  = loss[2]
-        fn_saved[i] = loss[3]
+        tp_saved[i] = loss[3]
         misc[i]    = conf_mat[1] + conf_mat[2]
     misc = np.sum(misc)/(len(df) * len(rand_vals))
     fn_avg_loss = np.average(fn_loss)
     fp_avg_loss = np.average(fp_loss)
     tp_avg_loss = np.average(tp_loss)
-    avg_saved   = np.average(fn_saved)
+    tp_avg_saved   = np.average(tp_saved)
     total_loss  = fn_loss + fp_loss + tp_loss
+    net_saved   = tp_saved - total_loss
     avg_loss    = np.average(total_loss)
     std_loss    = np.std(total_loss)
-    total_saved = fn_saved - total_loss
-    net_saved   = np.average(total_saved)
-    std_saved   = np.std(total_saved)
+    avg_saved   = np.average(net_saved)
+    std_saved   = np.std(net_saved)
     print("{:.<23s}{:10.4f}".format("Misclassification Rate", misc))
     print("{:.<23s}{:10.0f}".format("False Negative Cost", fn_avg_loss))
     print("{:.<23s}{:10.0f}".format("False Positive Cost", fp_avg_loss))
     print("{:.<23s}{:10.0f}".format("True Positive Cost", tp_avg_loss))
-    print("{:.<23s}{:10.0f}".format("True Positive Savings", avg_saved))
+    print("{:.<23s}{:10.0f}".format("True Positive Savings", tp_avg_saved))
     print("{:.<23s}{:10.0f}{:5s}{:<10.2f}".format("Total Loss", avg_loss, \
                   " +/- ", std_loss))
-    print("{:.<23s}{:10.0f}{:5s}{:<10.2f}".format("Net Saved", net_saved, \
+    print("{:.<23s}{:10.0f}{:5s}{:<10.2f}".format("Net Saved", avg_saved, \
                   " +/- ", std_saved))
-    if net_saved > min_saved:
-        min_saved   = net_saved
+    if avg_saved > min_saved:
+        min_saved   = avg_saved
         best_ratio = k
-print("Optimum Ratio is: ", ratio[k])
+print("Optimum Ratio is: ", ratio[best_ratio])
 #Implement hyperparameter optimization for decision tree using 50/50 RUS
 #Optimize the depth of the trees
 #Use savings to determine best model
@@ -367,7 +368,7 @@ for i in range(len(rand_value)):
                     random_state=rand_value[i], return_indices=False, \
                     replacement=False)
     X_rus, y_rus = rus.fit_sample(X_t, np_y_t)
-    ltr = DecisionTreeClassifier(max_depth=12, min_samples_leaf=5, \
+    ltr = DecisionTreeClassifier(max_depth=best_depth, min_samples_leaf=5, \
                                  min_samples_split=5,criterion='gini')
     tr.fit(X_rus, y_rus)
     avg_prob += tr.predict_proba(X_t)
@@ -376,5 +377,6 @@ avg_prob = avg_prob/len(rand_value)
 y_pred = avg_prob[0:,0] < 0.5
 y_pred.astype(np.int)
 # Calculate loss from using the ensemble predictions
-print("\nEnsemble Estimates based on averaging",len(rand_value), "Models")
+print("\nEnsemble Estimates based on averaging",len(rand_value), \
+      "Models with depth",best_depth)
 loss, conf_mat = loss_cal(np_y_t, y_pred,fp_cost,fn_cost, tp_cost)
