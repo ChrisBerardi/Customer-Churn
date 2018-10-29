@@ -15,7 +15,6 @@ from sklearn.ensemble import ExtraTreesClassifier
 from Class_tree import DecisionTree
 from sklearn.tree import DecisionTreeClassifier
 
-from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import cross_validate
 from sklearn.model_selection import train_test_split
 
@@ -54,10 +53,13 @@ def loss_cal(y, y_predict, fp_cost, fn_cost, tp_cost, display=True):
         print("{:.<23s}{:10.0f}".format("False Negative Cost", fn_loss))
         print("{:.<23s}{:10.0f}".format("False Positive Cost", fp_loss))
         print("{:.<23s}{:10.0f}".format("Total Loss", total_loss))
-        print("{:.<23s}{:10.0f}".format("Total Saved", total_saved))
+        print("{:.<23s}{:10.0f}".format("Total Saved", tp_save))
+        print("{:.<23s}{:10.0f}".format("Net Saved", total_saved))
     return loss, conf_mat
 
 
+#Define number of loops for optimization
+its = 1000    
 
 file_path = "C:/Users/Saistout/Desktop/data/customer churn/"
 df = pd.read_csv(file_path + 'WA_Fn-UseC_-Telco-Customer-Churn.csv')
@@ -259,7 +261,8 @@ fn_cost = np.array(df['MonthlyCharges'])
 tp_cost = np.array(0*df['MonthlyCharges']+20)
 
 # Setup random number seeds
-rand_val = np.array([1, 15, 168, 5156, 71686])
+rand_val = np.array([1,5, 10, 15, 168, 21, 5156, 71686])
+rand_val = np.array(range(0,its))
 # Ratios of Majority:Minority Events
 ratio = ['70:30','40:60', '50:50', '60:40', '70:30']
 # Dictionaries contains number of minority and majority events in each ratio sample
@@ -268,6 +271,7 @@ rus_ratio = ({0:801,1:1869},{0:1246,1:1869},{0:1869, 1:1869}, {0:2804, 1:1869}, 
              {0:4361, 1:1869})
 
 # Best model is one that maximizes savings
+#Run 1000 times to get average saved
 min_saved   = -9e+15
 best_ratio = 0
 for k in range(len(rus_ratio)):
@@ -283,7 +287,7 @@ for k in range(len(rus_ratio)):
                 random_state=rand_vals[i], return_indices=False, \
                 replacement=False)
         X_rus, y_rus = rus.fit_sample(X_t, np_y_t)
-        tr = DecisionTreeClassifier(max_depth=8, min_samples_leaf=5, \
+        tr = DecisionTreeClassifier(max_depth=12, min_samples_leaf=5, \
                                  min_samples_split=5,criterion='gini')
         tr.fit(X_rus, y_rus)
         loss, conf_mat = loss_cal(np_y_t, tr.predict(X_t), fp_cost, fn_cost,\
@@ -304,7 +308,6 @@ for k in range(len(rus_ratio)):
     total_saved = fn_saved - total_loss
     net_saved   = np.average(total_saved)
     std_saved   = np.std(total_saved)
-
     print("{:.<23s}{:10.4f}".format("Misclassification Rate", misc))
     print("{:.<23s}{:10.0f}".format("False Negative Cost", fn_avg_loss))
     print("{:.<23s}{:10.0f}".format("False Positive Cost", fp_avg_loss))
@@ -317,3 +320,61 @@ for k in range(len(rus_ratio)):
     if net_saved > min_saved:
         min_saved   = net_saved
         best_ratio = k
+print("Optimum Ratio is: ", ratio[k])
+#Implement hyperparameter optimization for decision tree using 50/50 RUS
+#Optimize the depth of the trees
+#Use savings to determine best model
+#Run each 1000 times to generate average and sd of saved
+depth_list = [5, 6, 7, 8, 10, 12]
+min_saved   = -9e+15
+best_ratio = 0
+for d in depth_list:
+    saved = np.zeros(len(rand_vals))
+    for i in range(len(rand_vals)):
+        dtc = DecisionTreeClassifier(max_depth=d, min_samples_leaf=5, \
+                                     min_samples_split=5)
+        dtc = dtc.fit(X_t,y_t)
+        rus = RandomUnderSampler(ratio=rus_ratio[best_ratio], \
+                                 random_state=rand_vals[i], return_indices=False, \
+                                 replacement=False)
+        X_rus, y_rus = rus.fit_sample(X_t, np_y_t)
+        tr = DecisionTreeClassifier(max_depth=12, min_samples_leaf=5, \
+                                 min_samples_split=5,criterion='gini')
+        tr.fit(X_rus, y_rus)
+        loss, conf_mat = loss_cal(np_y_t, tr.predict(X_t), fp_cost, fn_cost,\
+                                      tp_cost,display=False)
+        saved[i] = loss[3]-loss[0]-loss[1]-loss[2]
+    print("\nTree Depth: ", d)
+    print("{:.<23s}{:10.4f}".format("Average Savings", np.average(saved)))
+    print("{:.<23s}{:10.4f}".format("Sd Savings", np.std(saved)))
+
+    if np.average(saved) > min_saved:
+        min_saved = np.average(saved)
+        best_depth = d
+print("\nBest based on Highest Savings")
+print("Best Depth = ", best_depth)
+
+
+# Ensemble Modeling - Averaging Classification Probabilities
+avg_prob = np.zeros((len(np_y_t),2))
+# Setup 10 random number seeds for use in creating random samples
+np.random.seed(12345)
+max_seed = 2**31 - 1
+rand_value = np.random.randint(1, high=max_seed, size=1000)
+# Model 100 random samples, each with a 50:50 ratio
+for i in range(len(rand_value)):
+    rus = RandomUnderSampler(ratio=rus_ratio[best_ratio], \
+                    random_state=rand_value[i], return_indices=False, \
+                    replacement=False)
+    X_rus, y_rus = rus.fit_sample(X_t, np_y_t)
+    ltr = DecisionTreeClassifier(max_depth=12, min_samples_leaf=5, \
+                                 min_samples_split=5,criterion='gini')
+    tr.fit(X_rus, y_rus)
+    avg_prob += tr.predict_proba(X_t)
+avg_prob = avg_prob/len(rand_value)
+# Set y_pred equal to the predicted classification
+y_pred = avg_prob[0:,0] < 0.5
+y_pred.astype(np.int)
+# Calculate loss from using the ensemble predictions
+print("\nEnsemble Estimates based on averaging",len(rand_value), "Models")
+loss, conf_mat = loss_cal(np_y_t, y_pred,fp_cost,fn_cost, tp_cost)
