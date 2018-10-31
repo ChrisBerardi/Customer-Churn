@@ -1,0 +1,23 @@
+---
+title: "Customer Churn"
+author: "Chris Berardi"
+date: "October-November 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Predicting Customer Churn
+The ability to accurately predict customer churn, that is, predict which customers will cease to use a service a product, is of extreme importance to any business. The ability to predict churn allows for attempts to both prevent churn. 
+
+There exist many complexities that come with modeling churn. The first and most important comes from the nature of the unbalanced nature of churn--far more customers will remain customers than will churn. If standard methods are then used to achieve a binary classification, very little churn will be predicted; the best way for a model to achieve the best fit to the ignore the minority churn for the majority. For this reason, rare event modeling must be done to adequately model churn. 
+
+###The Data
+
+###The Model
+
+###Results
+
+###Conclusions
