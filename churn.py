@@ -254,12 +254,12 @@ DecisionTree.display_binary_split_metrics(dtc, X_train_t, y_train_t, \
 # Setup false positive and false negative costs for each transaction
  #Make a nominal cost for a fale positive i.e. they get thing even though
  #They won't churn
-fp_cost = np.array(df['MonthlyCharges']*0+20)
+fp_cost = np.array(df['MonthlyCharges']*.2)
 #False negatives cost the full amount i.e. they churn and we lose them
 fn_cost = np.array(df['MonthlyCharges']) 
 #Nominal true positive cost i.e. cost to run program to stop churn for 
 #those that will
-tp_cost = np.array(0*df['MonthlyCharges']+20)
+tp_cost = np.array(df['MonthlyCharges']*.2)
 
 # Setup random number seeds
 rand_val = np.array([1,5, 10, 15, 168, 21, 5156, 71686])
