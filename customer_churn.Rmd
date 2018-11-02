@@ -10,13 +10,56 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ##Predicting Customer Churn
-The ability to accurately predict customer churn, that is, predict which customers will cease to use a service a product, is of extreme importance to any business. The ability to predict churn allows for attempts to both prevent churn. 
+The ability to accurately predict customer churn, that is, to predict which customers will cease to use a service, or a product, is of extreme importance to any business. The ability to accurately predict churn allows for attempts to prevent churn. However, churn is generally difficult to predict for a variety of reasons, the most important being that churn is generally less common than non-churn. For this reason most model fitting will greatly underestimate churn, a non-optimum solution since churn is of such great importance. Thankfully there exist methods to improve the fit of minority binary classifiers. However they come at the cost of greatly increased churn prediction--incorrectly classifying non-churn events as churn events. But this is the price that must be paid to model churn.
 
-There exist many complexities that come with modeling churn. The first and most important comes from the nature of the unbalanced nature of churn--far more customers will remain customers than will churn. If standard methods are then used to achieve a binary classification, very little churn will be predicted; the best way for a model to achieve the best fit to the ignore the minority churn for the majority. For this reason, rare event modeling must be done to adequately model churn. 
 
 ###The Data
+The data used for this report contains information for 7043 customers each with 20 attributes and one target. The 
+
+####The Target
+| Churn |
+|-------|
+|No: 5174| 
+|Yes: 1869|
+
+The unbalanced nature of the binary target necessitates rare event modeling. 
+
+One attribute, CustomerID was not used to model the data as it was a unique ID for each customer and thus contains no information. The table below describe each attribute by data type. 
+
+####Binary Attributes
+| Gender | Senior Citizen | Partner | Dependent | Phone Service | Paperless Billing |
+|--------|-------|-------|---------|-----------|--------------|------------------|
+|Male|0|Yes|Yes|Yes|Yes|
+|Female|1|No|No|No|No|
+
+The binary attributes used in this report have been inconsistently filled, Senior Citizen uses an indicator variable in contrast to the Yes/No distinction for the other binary attributes.
+
+####Nominal Attributes
+| Multiple Lines | Internet Service | Online Security | Online Backup | Device Protection |
+|----------------|------------------|-----------------|---------------|-------------------|
+| Yes | Fiber Optics|Yes|Yes|Yes|
+| No | DSL|No|No|No|
+| No Phone Service| No|No Internet Service|No Internet Service|No Internet Service|
+
+| Tech Support | Streaming TV | Streaming Movies | Contract | Payment Method |
+|--------------|--------------|------------------|----------|----------------|
+|Yes|Yes|Yes|Month-to-Month|Bank Transfer (automatic)|
+|No|No|No|One year|Credit Card (automatic)|
+|No Internet Service|No Internet Service|No Internet Service|Two year|Electronic Check|
+|||||Mailed Check|
+
+All but one nominal attribute has three levels, Payment Method having four. 
+
+####Interval Attributes
+| Tenure | Monthly Charges | Total Charges |
+|--------|---------------|---------------|
+| Time as Customer| Amount Owed per Month| Total Amount Paid as Customer|
+| Months| Dollars | Dollars|
+
+The data contains very few interval variables. 
 
 ###The Model
+To help ameliorate the issues that come from modeling unbalanced binary targets, random undersampling will be used for rare event modeling. This will greatly improve the model's ability to identify real churn, at the cost of falsely classifying more non-churn as churn.
 
 ###Results
 
