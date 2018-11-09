@@ -10,8 +10,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ##Predicting Customer Churn
-The ability to accurately predict customer churn, that is, to predict which customers will cease to use a service, or a product, is of extreme importance to any business. The ability to accurately predict churn allows for attempts to prevent churn. However, churn is generally difficult to predict for a variety of reasons, the most important being that churn is generally less common than non-churn. For this reason most model fitting will greatly underestimate churn, a non-optimum solution since churn is of such great importance. Thankfully there exist methods to improve the fit of minority binary classifiers. However they come at the cost of greatly increased churn prediction--incorrectly classifying non-churn events as churn events. But this is the price that must be paid to model churn.
+The ability to accurately predict customer churn, that is, to predict which customers will cease to use a service, or a product, is of extreme importance to any business. Predicting churn allows for attempts to prevent churn. However, churn is generally difficult to predict for a variety of reasons, the most important being that churn is generally less common than non-churn. For this reason most model fitting will greatly underestimate churn, a non-optimum solution since churn is of such great importance. Thankfully there exist methods to improve the fit of minority binary classifiers. However the improved ability to predict real churn comes at the cost of greatly increased false churn prediction--incorrectly classifying non-churn events as churn events. But this is the price that must be paid to model churn.
 
+\pagebreak
 
 ###The Data
 The data used for this report contains information for 7043 customers each with 20 attributes and one target. The 
@@ -32,7 +33,7 @@ One attribute, CustomerID was not used to model the data as it was a unique ID f
 |Male|0|Yes|Yes|Yes|Yes|
 |Female|1|No|No|No|No|
 
-The binary attributes used in this report have been inconsistently filled, Senior Citizen uses an indicator variable in contrast to the Yes/No distinction for the other binary attributes.
+The binary attributes used in this report have been inconsistently coded, Senior Citizen uses an indicator variable in contrast to the Yes/No distinction for the other binary attributes. The binary attributes collected tells us various demographic and service related information about each customer. 
 
 ####Nominal Attributes
 | Multiple Lines | Internet Service | Online Security | Online Backup | Device Protection |
@@ -48,7 +49,7 @@ The binary attributes used in this report have been inconsistently filled, Senio
 |No Internet Service|No Internet Service|No Internet Service|Two year|Electronic Check|
 |||||Mailed Check|
 
-All but one nominal attribute has three levels, Payment Method having four. 
+All but one nominal attribute has three levels, Payment Method having four. These nominal attributes deal with various services offered by this telecom company.
 
 ####Interval Attributes
 | Tenure | Monthly Charges | Total Charges |
@@ -56,11 +57,71 @@ All but one nominal attribute has three levels, Payment Method having four.
 | Time as Customer| Amount Owed per Month| Total Amount Paid as Customer|
 | Months| Dollars | Dollars|
 
-The data contains very few interval variables. 
+The data contains very few interval variables. However the interval variables that are included are of great importance since they are critical for defining the amount of money lost to churn, and the amount of money saved by the model. 
+
+\pagebreak
 
 ###The Model
-To help ameliorate the issues that come from modeling unbalanced binary targets, random undersampling will be used for rare event modeling. This will greatly improve the model's ability to identify real churn, at the cost of falsely classifying more non-churn as churn.
+As the ration of churn to non-churn events was 1:3, none rare event modeling was attempted to predict churn. This approach failed to adequately model churn, predicting far less churn than existed, and therefore failed in its primary purpose. For this reason rare event modeling with random undersampling was then carried out. 
+
+Using standard goodness of fit measure for binary classification, sensitivity, specificity and the like, would be not appropriate in this case. For that reason a savings function was created to assess the goodness of fit for models. The savings function was defined as follows: Total Savings = Amount of Churn Predicted - Cost to Prevent Churn - Amount of Churn not Predicted. The variables are defined as follows:
+
+**Amount of Churn Predicted:** the sum of monthly charges for all churn events predicted.
+
+**Cost to Prevent Churn:** a theoretical assumption that it will cost 25% of the monthly cost to prevent a churn event. Cost to prevent churn is then the sum of this amount for all churn predictions. 
+
+**Amount of Churn not Predicted:** the sum of monthly charges or all churn events incorrectly classified as non-churn events.
+
+The best model will then predict the most churn correctly while not falsely predicting churn. The savings function will prioritize large amounts of churn over predicting more churn. 
+
+Given the nature of the data, a decision tree model was selected to model churn. The first step in training the model was determining the optimum RUS ratio for this data. The following ratios were used:
+
+| Ratio for RUS (Majority:Minority) |
+|---------------|
+|30:70|
+|40:60|
+|50:50|
+|60:40|
+|70:30|
+
+The optimum RUS ratio was then used to hyperparameterize a decision tree model. Each depth was run 1000 times to generate average and standard deviations for the savings at each depth. The following depths were used:
+
+| Decisions Tree Depths |
+|-----------------------|
+|5|
+|6|
+|7|
+|8|
+|10|
+|12|
+
+\pagebreak
 
 ###Results
+The optimum ratio for RUS was found to be 30:70. This model had the highest missclassification rate, but it also had the highest rate of correct churn prediction. The properties of the model are as follows:
+
+| 30:70 RUS | |
+|-----------|-------|
+|Missclassification Rate|                .3108|
+|Churn Classified as Non-Churn Cost|      $9001|
+|Non-Churn Classified as Churn Cost|     $28687|
+|Cost to Prevent Churn|                  $26026|
+|Savings from Preventing Churn|         $130129|
+|Total Cost |                \$63715 $\pm$ $728.84|
+|Net Savings |              \$66415 $\pm$ $1150.64|
+
+Using this 30:70 RUS ratio, hyperparameter optimization was conducted. A depth of 7 was found to be the optimum depth for this data. Following that, ensemble modeling was done to create a final model for this data. 1000 trees were created and averaged to produce the following results:
+
+| Ensemble Model Results | |
+|-----------|-------|
+|Missclassification Rate|                .3135|
+|Churn Classified as Non-Churn Cost|      $906|
+|Non-Churn Classified as Churn Cost|     $31210|
+|Cost to Prevent Churn|                  $27645|
+|Savings from Preventing Churn|         $128225|
+|Total Cost |                            $59761|
+|Net Savings |                           $78464|
+
 
 ###Conclusions
+Various conclusions can drawn from the model. We can first see from the missclassification error rate that the model, essentially, predicts twice as many churn events as actually exist. This atrocious error rate is necessary to predict as many of the actual churn events as possible. However, this level of missclassification allowed for all but \$906 out of \$129131, .7%, of churn to be accurately classified. However classifying churn as well as that brings in a significant cost: /$31210, 9.85% of total non-churn payments, spent to prevent churn for customers that would not churn. This cost allows for far more money, \$78464, to be saved once churn is prevented. 
