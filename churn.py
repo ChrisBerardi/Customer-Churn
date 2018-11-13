@@ -265,7 +265,7 @@ tp_cost = np.array(df['MonthlyCharges']*.2)
 rand_val = np.array([1,5, 10, 15, 168, 21, 5156, 71686])
 rand_val = np.array(range(0,its))
 # Ratios of Majority:Minority Events
-ratio = ['70:30','40:60', '50:50', '60:40', '70:30']
+ratio = ['30:70','40:60', '50:50', '60:40', '70:30']
 # Dictionaries contains number of minority and majority events in each ratio sample
 # n_majority = ratio x n_minority
 rus_ratio = ({0:801,1:1869},{0:1246,1:1869},{0:1869, 1:1869}, {0:2804, 1:1869}, \
@@ -372,6 +372,7 @@ for i in range(len(rand_value)):
                                  min_samples_split=5,criterion='gini')
     tr.fit(X_rus, y_rus)
     avg_prob += tr.predict_proba(X_t)
+print(tr.feature_importances_)
 avg_prob = avg_prob/len(rand_value)
 # Set y_pred equal to the predicted classification
 y_pred = avg_prob[0:,0] < 0.5
