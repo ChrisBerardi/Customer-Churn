@@ -122,6 +122,14 @@ Using this 30:70 RUS ratio, hyperparameter optimization was conducted. A depth o
 |Total Cost |                            $59761|
 |Net Savings |                           $78464|
 
+Extracting feature importance from the ensemble models, the following predictors were found to be disproportionately important in predicting customer churn: 
+
+| Important Features in the Ensemble Model |
+|------------------------------------------|
+|Contract|
+|TotalCharges|
+|MonthlyCharges|
+|Tenure|
 
 ###Conclusions
 Various conclusions can drawn from the model. We can first see from the missclassification error rate that the model, essentially, predicts twice as many churn events as actually exist. This atrocious error rate is necessary to predict as many of the actual churn events as possible. However, this level of missclassification allowed for all but \$906 out of \$129131, .7%, of churn to be accurately classified. However classifying churn as well as that brings in a significant cost: /$31210, 9.85% of total non-churn payments, spent to prevent churn for customers that would not churn. This cost allows for far more money, \$78464, to be saved once churn is prevented. 
