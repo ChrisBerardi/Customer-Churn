@@ -6,7 +6,7 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 ```
 
 ##Predicting Customer Churn
@@ -133,15 +133,15 @@ Extracting feature importance from the ensemble models, the following predictors
 \pagebreak
 
 ###Conclusions
-Various conclusions can drawn from the model. We can first see from the missclassification error rate that the model, essentially, predicts twice as many churn events as actually exist. This atrocious error rate is necessary to predict as many of the actual churn events as possible. However, this level of missclassification allowed for all but \$906 out of \$129131, .7%, of churn to be accurately classified. However classifying churn as well as that brings in a significant cost: /$31210, 9.85% of total non-churn payments, spent to prevent churn for customers that would not churn. This cost allows for far more money, \$78464, to be saved once churn is prevented. 
+Various conclusions can drawn from the model. We can first see from the missclassification error rate that the model, essentially, predicts twice as many churn events as actually exist. This atrocious error rate is necessary to predict as many of the actual churn events as possible. However, this level of missclassification allowed for all but \$906 out of \$129131, .7%, of churn to be accurately classified. However classifying churn as well as that brings in a significant cost: \$31210, 9.85% of total non-churn payments, spent to prevent churn for customers that would not churn. This cost allows for far more money, \$78464, to be saved once churn is prevented. 
 
-Of more important is the identification of features that give rise to churn, specifically: Contract, TotalCharges, MonthlyCharges. 
-
-\pagebreak
-
-![](charts.png)
+Of more important is the identification of features that give rise to churn, specifically: Contract, TotalCharges, MonthlyCharges. The following charts show the relationship between the important features and churn. 
 
 \pagebreak
+
+```{r}
+knitr::include_graphics("charts.png")
+```
 
 Figure 1 on the previous page contains plots that shows the relationship between the most important features and the target for this analysis. Conclusions, as well as possible methods for mitigating churn, will be draw from each plot.
 
@@ -149,6 +149,6 @@ Starting with the most important predictor, Contract, we can see a clearly, in t
 
 Continuing on to TotalCharges, we can see from the box-plot that the individuals that churn are, generally, those who have spent less with this company over time. The reasons for this counterintuitive result is consistent with the previous findings that month-to-month customers are more likely to churn. The conclusions that can be drawn from this plot on how to prevent are thus the same: convince customers to sign contracts to stay with the company longer, thus making them spend more with the company over time.
 
-The final important feature, MonthlyCharges, is the last box-plot on the preceding page. Customers that churn spend, on average, more than those who don't. While we expect customers that pay to want to find different service, the reason why they pay more must be found. The interpretation of this plot is more complicated when the previous two plots are considered. As has been already established, customers that churn generally do not sign contracts, increasing the average amount they pay. This accounts for much of the increased charges. FINISH
+The final important feature, MonthlyCharges, is the last box-plot on the preceding page. Customers that churn spend, on average, more than those who don't. While we expect customers that pay the most to want to find different service, the reason why they pay more must be found. The interpretation of this plot is made clear when the contract plot is considered.As has been already established, customers that churn generally do not sign contracts, increasing the average amount they pay. This accounts for most of the increased charges.
 
-Taken together, the model, as well as the feature importance, show a path that can be taken to minimize future churn. FINISH
+Taken together, the model, as well as the feature importance, show a path that can be taken to minimize future churn. Work must go into convincing customers to switch from month-to-month to one-year or two-year contracts. This will decrease monthly charges as well as increase total charges i.e. make them customers for a longer period of time. Furthermore, more work needs to be done to determine the monthly charge under which customer cease churning at high rates. This amount can inform possible remediation to prevent churn in month-to-month customers. 
